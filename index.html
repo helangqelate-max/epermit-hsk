@@ -222,6 +222,9 @@ dl.kv dd{margin:0;padding:7px 0;border-bottom:1px dashed #e5ebe7;font-weight:500
 @media(max-width:600px){dl.kv{grid-template-columns:1fr}dl.kv dt{border:0;padding-bottom:0}}
 .sec-title{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--leaf);font-weight:700;margin:22px 0 10px}
 .sec-title:first-child{margin-top:0}
+.same-chk{display:inline-flex;align-items:center;gap:8px;margin:0 0 10px;font-size:13.5px;font-weight:600;cursor:pointer;user-select:none}
+.same-chk input{width:17px;height:17px;accent-color:var(--leaf);cursor:pointer}
+#tblMgp input[readonly]{background:#eef5ef;color:#2d4a3a}
 .mini{min-width:0!important;font-size:13px}
 .mini td,.mini th{padding:7px 9px!important}
 
@@ -388,6 +391,7 @@ footer.site{text-align:center;color:var(--muted);font-size:12.5px;padding:10px 2
       </div>
       <div class="card-body">
         <div class="sec-title">A. Malim Gunung Perhutanan (MGP)</div>
+        <label class="same-chk"><input type="checkbox" id="mgpSama"> MGP pertama sama seperti maklumat pemohon</label>
         <div class="tbl-wrap"><table class="data" id="tblMgp">
           <thead><tr><th>Bil.</th><th>Nama</th><th>No. MyKad</th><th>No. Telefon</th><th>No. MGP</th><th></th></tr></thead><tbody></tbody>
         </table></div>
@@ -560,7 +564,22 @@ $('#addPes').onclick = () => {
   if ($$('#tblPes tbody tr').length >= mgpRows() * NISBAH) return;   // had 1 MGP : 7 peserta
   $('input', addRow($('#tblPes'), pesCols, true)).focus();
 };
-function resetRows(){ $$('#tblMgp tbody, #tblPes tbody').forEach(t=>t.innerHTML=''); addRow($('#tblMgp'),mgpCols); for(let i=0;i<3;i++) addRow($('#tblPes'),pesCols,true); }
+function resetRows(){ $$('#tblMgp tbody, #tblPes tbody').forEach(t=>t.innerHTML=''); addRow($('#tblMgp'),mgpCols); for(let i=0;i<3;i++) addRow($('#tblPes'),pesCols,true); syncMgpSama(); }
+/* MGP pertama = pemohon (tanda kotak) */
+const SAMA_MAP = {nama:'nama', ic:'kppn', tel:'telefon', mgp:'mgp'};
+function syncMgpSama(clear){
+  const on = $('#mgpSama').checked, tr = $('#tblMgp tbody tr');
+  if (!tr) return;
+  Object.entries(SAMA_MAP).forEach(([k,n])=>{
+    const i = $(`[data-k="${k}"]`, tr);
+    if (on) i.value = $(`#appForm [name="${n}"]`).value.trim();
+    else if (clear) i.value = '';
+    i.readOnly = on;
+  });
+  recount();
+}
+$('#mgpSama').addEventListener('change', ()=>syncMgpSama(true));
+Object.values(SAMA_MAP).forEach(n=>$(`#appForm [name="${n}"]`).addEventListener('input', ()=>{ if ($('#mgpSama').checked) syncMgpSama(); }));
 resetRows();
 
 /* tempoh hint */
@@ -714,7 +733,7 @@ function statusCard(a){
   const s = normSt(a.status), o = a.office || {}, pm = a.payment || {}, fee = o.fee ? Number(o.fee).toFixed(2) : '';
   const steps = `<ol class="steps">${STEP_LBL.map((l,i)=>`<li class="${STEP_STATE[s][i]}">${l}</li>`).join('')}</ol>`;
   let body = '';
-  if (s === 'Baru') body = `<div class="st-box info">Permohonan anda telah diterima dan sedang disemak oleh Pegawai Hutan Berkuasa. Sila semak semula status ini kemudian.</div>`;
+  if (s === 'Baru') body = `<div class="st-box info">Permohonan anda telah diterima dan sedang disemak. Harap bersabar.</div>`;
   else if (s === 'Ditolak') body = `<div class="st-box bad"><b>Harap maaf, permohonan anda tidak diluluskan.</b>${o.ulasan?`<br>Ulasan: ${esc(o.ulasan)}`:''}</div>`;
   else if (s === 'Bayaran') body = `<div class="st-box warn"><b>Pengesahan bayaran anda telah diterima</b>${pm.dihantar?` pada ${new Date(pm.dihantar).toLocaleString('ms-MY')}`:''}
       (No. Resit ${esc(pm.resit)}, RM${esc(pm.jumlah)}).<br>Bayaran sedang disahkan. Permit akan dikeluarkan selepas bayaran disahkan oleh pegawai.</div>`;
