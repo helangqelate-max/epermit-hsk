@@ -534,7 +534,11 @@ function addRow(tbl, cols, extra){
   tb.appendChild(tr); renumber();
   return tr;
 }
-function renumber(){ ['#tblMgp','#tblPes'].forEach(t=>$$(t+' tbody tr').forEach((r,i)=>r.cells[0].textContent=(i+1)+'.')); recount(); }
+function renumber(){
+  ['#tblMgp','#tblPes'].forEach(t=>$$(t+' tbody tr').forEach((r,i)=>r.cells[0].textContent=(i+1)+'.'));
+  $$('#tblMgp tbody tr').forEach((r,i)=>{ $('.icon-btn',r).style.visibility = i===0 ? 'hidden' : ''; });   // MGP pertama tidak boleh dibuang
+  recount();
+}
 const rowFilled = r => $$('input',r).some(i=>i.value.trim());
 function readRows(t){ return $$(t+' tbody tr').filter(rowFilled).map(r=>{ const o={}; $$('[data-k]',r).forEach(i=>o[i.dataset.k]=i.value.trim()); return o; }); }
 function recount(){
