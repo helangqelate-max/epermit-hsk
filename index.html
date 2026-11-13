@@ -431,8 +431,8 @@ footer.site{text-align:center;color:var(--muted);font-size:12.5px;padding:10px 2
       <div class="submit-bar">
         <span style="color:var(--muted);font-size:13px"><span style="color:var(--red)">*</span> wajib diisi.</span>
         <div style="display:flex;gap:10px">
-          <button type="reset" class="btn btn-ghost">Kosongkan</button>
-          <button type="submit" class="btn btn-primary btn-lg">Hantar Permohonan →</button>
+          <button type="reset" class="btn btn-ghost">Padam</button>
+          <button type="submit" class="btn btn-primary btn-lg">Hantar →</button>
         </div>
       </div>
     </div>
@@ -446,7 +446,6 @@ footer.site{text-align:center;color:var(--muted);font-size:12.5px;padding:10px 2
     <p id="successNote" style="color:var(--muted);margin:10px auto 0;font-size:13px;max-width:520px">Sila simpan No. Rujukan ini</p>
     <div style="margin-top:18px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
       <button class="btn btn-gold" id="dlSalinan">🖨 Cetak Salinan</button>
-      <button class="btn btn-ghost" id="goSemak">Semak Status</button>
       <button class="btn btn-primary" id="newApp">Permohonan Baharu</button>
     </div>
   </div></div>
@@ -579,7 +578,7 @@ $('#addPes').onclick = () => {
 };
 function resetRows(){ $$('#tblMgp tbody, #tblPes tbody').forEach(t=>t.innerHTML=''); addRow($('#tblMgp'),mgpCols); for(let i=0;i<3;i++) addRow($('#tblPes'),pesCols,true); syncMgpSama(); }
 /* Huruf besar automatik: nama, No. MGP, alamat (pemohon & Lampiran A) */
-const UPPER_SEL = '[name=nama],[name=mgp],[name=alamat],[data-k=nama],[data-k=mgp],[data-k=alamat]';
+const UPPER_SEL = '[name=nama],[name=mgp],[name=persatuan],[name=alamat],[data-k=nama],[data-k=mgp],[data-k=alamat]';
 $('#appForm').addEventListener('input', e=>{
   const el = e.target;
   if (!el.matches || !el.matches(UPPER_SEL)) return;
@@ -589,6 +588,12 @@ $('#appForm').addEventListener('input', e=>{
   el.value = up;
   try{ el.setSelectionRange(a, b); }catch(_){}
 }, true);   // fasa tangkap: berjalan sebelum pendengar lain (cth. salinan ke MGP pertama)
+
+/* Emel: huruf kecil, tanpa ruang; disemak format semasa keluar medan & semasa hantar */
+const EMEL_RE = /^[a-z0-9._%+-]+@[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}$/;
+const emelIn = $('#appForm [name=emel]');
+emelIn.addEventListener('input', ()=>{ const v = emelIn.value.toLowerCase().replace(/\s+/g,''); if (v !== emelIn.value) emelIn.value = v; emelIn.classList.remove('invalid'); });
+emelIn.addEventListener('blur', ()=>{ const v = emelIn.value.trim(); emelIn.classList.toggle('invalid', !!v && !EMEL_RE.test(v)); if (v && !EMEL_RE.test(v)) toast('Format emel tidak sah (cth. nama@contoh.com)'); });
 
 /* MGP pertama = pemohon (tanda kotak) */
 const SAMA_MAP = {nama:'nama', ic:'kppn', tel:'telefon', mgp:'mgp'};
@@ -671,6 +676,9 @@ form.onsubmit = async e => {
   $$('[required]', form).forEach(i=>{ const ok = i.value.trim(); i.classList.toggle('invalid', !ok); if(!ok && !bad) bad=i; });
   const ic = form.kppn.value.replace(/\D/g,'');
   if(!bad && ic.length!==12){ form.kppn.classList.add('invalid'); bad = form.kppn; msg = 'No. K.P.P.N mesti 12 digit'; }
+  const em = form.emel.value.trim();
+  form.emel.classList.toggle('invalid', !!em && !EMEL_RE.test(em));
+  if(!bad && em && !EMEL_RE.test(em)){ bad = form.emel; msg = 'Format emel tidak sah (cth. nama@contoh.com)'; }
   if(bad){ bad.focus(); bad.scrollIntoView({block:'center',behavior:'smooth'}); return toast(msg); }
   if(form.hingga.value < form.dari.value){ form.hingga.classList.add('invalid'); form.hingga.focus(); return toast('Tarikh hingga mesti selepas tarikh sah dari'); }
   const mgpList = readRows('#tblMgp'), peserta = readRows('#tblPes');
@@ -713,7 +721,6 @@ form.onsubmit = async e => {
 $('#newApp').onclick = ()=>{ form.reset(); form.style.display=''; $('#successCard').style.display='none'; };
 let lastApp = null;
 $('#dlSalinan').onclick = ()=>{ if(lastApp) printSalinan(lastApp); };
-$('#goSemak').onclick =()=>{ $('#qRef').value=$('#refOut').textContent; show('semak'); doSemak(); };
 if (ONLINE){
   $('#footMode').textContent = 'Hak cipta Unit Ekopark dan Hutan Taman Negeri.';
 }
