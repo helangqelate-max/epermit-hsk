@@ -275,7 +275,12 @@ footer.site{text-align:center;color:var(--muted);font-size:12.5px;padding:10px 2
 .pf .foot{border-top:1px solid #000;text-align:center;font-size:8.5pt;margin-top:22px;padding-top:4px}
 .pf .watermark{position:absolute;top:38%;left:0;right:0;text-align:center;font-size:72pt;font-weight:800;color:rgba(179,38,30,.12);transform:rotate(-24deg);pointer-events:none}
 .pf .stamp{position:absolute;right:8mm;top:52mm;border:3px double #17693c;color:#17693c;padding:4px 12px;font-weight:800;transform:rotate(-8deg);font-size:13pt;letter-spacing:.08em;opacity:.85}
-.pf .sal{font-size:9.5pt}
+@page salinan{size:A4 portrait;margin:0}   /* margin 0 = tiada pengepala/pengaki pelayar (URL fail, tarikh) */
+.pf .sal{font-size:9.5pt;page:salinan;padding:0 16mm}
+.pf .sal table.pg{width:100%;border:0}
+.pf .sal table.pg>*>tr>td{border:0;padding:0}
+.pf .sal table.pg>thead td{height:14mm}
+.pf .sal table.pg>tfoot td{height:12mm}
 .pf .sal h5{font-size:10pt;margin:12px 0 5px;text-transform:uppercase}
 .pf .sal .sub{font-weight:700;margin:6px 0 3px}
 .pf .sal .sl{width:34%;background:#f3f3f3}
@@ -573,6 +578,18 @@ $('#addPes').onclick = () => {
   $('input', addRow($('#tblPes'), pesCols, true)).focus();
 };
 function resetRows(){ $$('#tblMgp tbody, #tblPes tbody').forEach(t=>t.innerHTML=''); addRow($('#tblMgp'),mgpCols); for(let i=0;i<3;i++) addRow($('#tblPes'),pesCols,true); syncMgpSama(); }
+/* Huruf besar automatik: nama, No. MGP, alamat (pemohon & Lampiran A) */
+const UPPER_SEL = '[name=nama],[name=mgp],[name=alamat],[data-k=nama],[data-k=mgp],[data-k=alamat]';
+$('#appForm').addEventListener('input', e=>{
+  const el = e.target;
+  if (!el.matches || !el.matches(UPPER_SEL)) return;
+  const up = el.value.toUpperCase();
+  if (up === el.value) return;
+  const a = el.selectionStart, b = el.selectionEnd;
+  el.value = up;
+  try{ el.setSelectionRange(a, b); }catch(_){}
+}, true);   // fasa tangkap: berjalan sebelum pendengar lain (cth. salinan ke MGP pertama)
+
 /* MGP pertama = pemohon (tanda kotak) */
 const SAMA_MAP = {nama:'nama', ic:'kppn', tel:'telefon', mgp:'mgp'};
 function syncMgpSama(clear){
@@ -832,7 +849,7 @@ function printSalinan(a){
   const hantar = a.created ? new Date(a.created).toLocaleString('ms-MY',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
   const st = (ST[normSt(a.status)] || {l:a.status}).l;
   $('#printArea').innerHTML = `
-  <section class="page p1 sal">
+  <section class="page sal"><table class="pg"><thead><tr><td></td></tr></thead><tfoot><tr><td></td></tr></tfoot><tbody><tr><td>
     <div class="watermark">SALINAN</div>
     <div class="t1" style="font-size:12pt">JABATAN PERHUTANAN NEGERI KELANTAN</div>
     <div class="t2">Unit Ekopark dan Hutan Taman Negeri</div>
@@ -852,11 +869,11 @@ function printSalinan(a){
     <div class="sub">B. Peserta</div>
     ${a.peserta.length ? `<table class="box lst"><thead><tr><th style="width:6%">Bil.</th><th>Nama</th><th style="width:15%">MyKad / Passport</th><th>Alamat</th><th style="width:12%">No. Telefon</th><th style="width:12%">Tel. Waris</th><th style="width:8%">Jantina</th><th style="width:11%">Warganegara</th></tr></thead>
       <tbody>${a.peserta.map((m,i)=>`<tr><td class="center">${i+1}.</td><td>${v(m.nama)}</td><td>${v(m.ic)}</td><td>${v(m.alamat)}</td><td>${v(m.tel)}</td><td>${v(m.waris)}</td><td>${v(m.jantina)}</td><td>${v(m.wn)}</td></tr>`).join('')}</tbody></table>`
-      : '<p style="margin:4px 0">Tiada peserta (MGP sahaja).</p>'}
+      : '<p style="margin:4px 0">Tiada peserta.</p>'}
     <h5>4. Perakuan Pemohon</h5>
     <p style="margin:4px 0">☑ Saya mengesahkan bahawa semua maklumat dan dokumen yang dikemukakan dalam permohonan ini adalah benar. Jika saya didapati memalsukan maklumat, dokumen, atau pernyataan palsu, saya boleh didakwa di bawah Kanun Keseksaan yang memperuntukkan hukuman penjara sehingga 6 bulan atau denda sehingga RM2,000.00 atau kedua-duanya.</p>
     <div class="foot">Salinan ini dijana oleh sistem e-Permit dan bukan permit yang sah. Permit hanya sah selepas dikeluarkan oleh Pegawai Hutan Berkuasa.</div>
-  </section>`;
+  </td></tr></tbody></table></section>`;
   document.title = 'Salinan-Permohonan-' + a.ref;   // nama fail PDF
   setTimeout(()=>{ window.print(); setTimeout(()=>document.title=TITLE0, 1000); }, 60);
 }
