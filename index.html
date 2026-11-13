@@ -222,6 +222,7 @@ dl.kv dd{margin:0;padding:7px 0;border-bottom:1px dashed #e5ebe7;font-weight:500
 @media(max-width:600px){dl.kv{grid-template-columns:1fr}dl.kv dt{border:0;padding-bottom:0}}
 .sec-title{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--leaf);font-weight:700;margin:22px 0 10px}
 .sec-title:first-child{margin-top:0}
+.copy-row{margin-top:12px;display:flex;justify-content:flex-end}
 .same-chk{display:inline-flex;align-items:center;gap:8px;margin:0 0 10px;font-size:13.5px;font-weight:600;cursor:pointer;user-select:none}
 .same-chk input{width:17px;height:17px;accent-color:var(--leaf);cursor:pointer}
 #tblMgp input[readonly]{background:#eef5ef;color:#2d4a3a}
@@ -430,9 +431,9 @@ footer.site{text-align:center;color:var(--muted);font-size:12.5px;padding:10px 2
     <h2 style="margin:0">Permohonan Berjaya Dihantar</h2>
     <p style="color:var(--muted);margin:6px 0 0">Simpan nombor rujukan ini untuk menyemak status permohonan anda.</p>
     <div class="refbox" id="refOut"></div>
-    <p id="successNote" style="color:var(--muted);margin:10px auto 0;font-size:13px;max-width:520px">Jika anda memohon menggunakan peranti sendiri, muat turun fail permohonan dan hantar kepada Jabatan Perhutanan Negeri Kelantan (emel / WhatsApp).</p>
+    <p id="successNote" style="color:var(--muted);margin:10px auto 0;font-size:13px;max-width:520px">Sila simpan No. Rujukan ini</p>
     <div style="margin-top:18px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-      <button class="btn btn-gold" id="dlMine">⇩ Muat turun fail permohonan</button>
+      <button class="btn btn-gold" id="dlSalinan">🖨 Cetak Salinan</button>
       <button class="btn btn-ghost" id="goSemak">Semak Status</button>
       <button class="btn btn-primary" id="newApp">Permohonan Baharu</button>
     </div>
@@ -687,11 +688,9 @@ form.onsubmit = async e => {
 };
 $('#newApp').onclick = ()=>{ form.reset(); form.style.display=''; $('#successCard').style.display='none'; };
 let lastApp = null;
-$('#dlMine').onclick = ()=>{ if(lastApp) dl(pack([lastApp]), `permohonan-${lastApp.ref}.json`); };
+$('#dlSalinan').onclick = ()=>{ if(lastApp) printPermit(lastApp, false, true); };
 $('#goSemak').onclick =()=>{ $('#qRef').value=$('#refOut').textContent; show('semak'); doSemak(); };
-if (ONLINE){                                              // mod pelayan: tiada fail .json, permohonan terus ke Jabatan
-  $('#dlMine').hidden = true;
-  $('#successNote').textContent = 'Sila simpan No. Rujukan ini';
+if (ONLINE){
   $('#footMode').textContent = 'Hak cipta Unit Ekopark dan Hutan Taman Negeri.';
 }
 
@@ -715,6 +714,7 @@ async function doSemak(){
   if(!res.length){ out.innerHTML = `<div class="empty">Tiada permohonan ditemui. Semak No. Rujukan anda.</div>`; return; }
   out.innerHTML = res.map(statusCard).join('');
   $$('[data-print]',out).forEach(b=>b.onclick=()=>printPermit(cache.get(b.dataset.print)));
+  $$('[data-salinan]',out).forEach(b=>b.onclick=()=>printPermit(cache.get(b.dataset.salinan), false, true));
   $$('form[data-pay]',out).forEach(f=>f.onsubmit=submitPay);
   $$('[data-copy]',out).forEach(b=>b.onclick=async()=>{
     try{ await navigator.clipboard.writeText(b.dataset.copy); toast('No. rujukan pra pembayaran disalin'); }
@@ -766,7 +766,8 @@ function statusCard(a){
   }
   return `<div class="st-card"><div class="st-head"><div><h3 class="mono">${esc(a.ref)}</h3>
       <div class="meta">${esc(a.hsk)} · ${esc(a.lokasi)} · ${fmtD(a.dari)} – ${fmtD(a.hingga)} · ${total(a)} orang</div></div>${badge(s)}</div>
-    ${steps}${body}</div>`;
+    ${steps}${body}
+    ${s !== 'Dikeluarkan' ? `<div class="copy-row"><button type="button" class="btn btn-ghost btn-sm" data-salinan="${esc(a.ref)}">🖨 Cetak Salinan</button></div>` : ''}</div>`;
 }
 
 /* Salinan resit -> {name, type, data(dataURL)}. Gambar dikecilkan (maks 1600px, JPEG) supaya ringan. */
@@ -816,9 +817,11 @@ $('#qRef').onkeydown = e=>{ if(e.key==='Enter') doSemak(); };
 const dl = (obj, name) => { const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(obj,null,1)],{type:'application/json'})); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },500); };
 const pack = list => ({app:'ePermitHSK', versi:1, dieksport:new Date().toISOString(), permohonan:list});
 /* ---------- PRINT: BORANG 6 + LAMPIRAN A ---------- */
-function printPermit(a, isAdmin){
+const TITLE0 = document.title;
+function printPermit(a, isAdmin, salinan){
   const o = a.office || {};
   const approved = normSt(a.status)==='Dikeluarkan';                       // permit sah hanya selepas bayaran disahkan
+  const WM = salinan ? 'SALINAN' : (a.status==='Ditolak' ? 'DITOLAK' : 'DRAF');
   const lulus = ['Lulus','Bayaran','BayaranTidakSah','Dikeluarkan'].includes(normSt(a.status));
   const strikeAk = a.aktiviti==='Rekreasi' ? 'rekreasi/ <s>pendakian</s>' : '<s>rekreasi</s>/ pendakian';
   const pad = (arr, n) => arr.concat(Array(Math.max(0, n-arr.length)).fill(null));
@@ -828,7 +831,7 @@ function printPermit(a, isAdmin){
 
   $('#printArea').innerHTML = `
   <section class="page p1">
-    ${!approved?'<div class="watermark">'+(a.status==='Ditolak'?'DITOLAK':'DRAF')+'</div>':''}
+    ${!approved?'<div class="watermark">'+WM+'</div>':''}
     <table class="state"><tr><td style="width:50%">KERAJAAN NEGERI</td><td>KELANTAN</td></tr></table>
     <div class="t1">AKTA PERHUTANAN NEGARA 1984</div>
     <div class="t2">Borang 6</div>
@@ -870,7 +873,7 @@ function printPermit(a, isAdmin){
   </section>
 
   <section class="page p2 lamp">
-    ${!approved?'<div class="watermark" style="top:30%">'+(a.status==='Ditolak'?'DITOLAK':'DRAF')+'</div>':''}
+    ${!approved?'<div class="watermark" style="top:30%">'+WM+'</div>':''}
     <div style="text-align:right">LAMPIRAN A</div>
     <h4>SENARAI MALIM GUNUNG PERHUTANAN (MGP) DAN PESERTA BAGI AKTIVITI EKOPELANCONGAN (${a.aktiviti.toUpperCase()})</h4>
     <h4>DI HUTAN SIMPAN KEKAL <u>${esc(a.hsk.toUpperCase())}</u></h4>
@@ -894,8 +897,9 @@ function printPermit(a, isAdmin){
     <div style="font-size:8pt;font-style:italic;margin-top:3px">*Sila tambah lampiran sekiranya ruangan tidak mencukupi<br>*Potong yang tidak berkenaan</div>
     <div style="font-size:8pt;margin-top:6px">Jumlah: ${a.mgpList.length} MGP + ${a.peserta.length} peserta = <b>${total(a)} orang</b> · No. Rujukan Permohonan: ${a.ref}</div>
   </section>`;
-  if(!approved && !isAdmin) return toast('Permit hanya boleh dicetak selepas bayaran disahkan');
-  setTimeout(()=>window.print(), 60);
+  if(!approved && !isAdmin && !salinan) return toast('Permit hanya boleh dicetak selepas bayaran disahkan');
+  document.title = (salinan ? 'Salinan-Permohonan-' : 'Permit-') + a.ref;   // nama fail PDF
+  setTimeout(()=>{ window.print(); setTimeout(()=>document.title=TITLE0, 1000); }, 60);
 }
 
 })();
