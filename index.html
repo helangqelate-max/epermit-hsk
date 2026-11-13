@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="e-Permit Hutan Simpanan Kekal – Jabatan Perhutanan Negeri Kelantan">
+<meta name="theme-color" content="#14302a">
+<title>e-Permit HSK | Jabatan Perhutanan Negeri Kelantan</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌿</text></svg>">
+<style>
+  html, body { margin: 0; height: 100%; background: #14302a; font-family: Arial, sans-serif; }
+  #loading {
+    position: fixed; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; color: #d9ead3; gap: 14px;
+  }
+  .spinner {
+    width: 38px; height: 38px; border: 4px solid rgba(255,255,255,.2);
+    border-top-color: #9fd38a; border-radius: 50%; animation: spin 1s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  iframe { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; }
+</style>
+</head>
+<body>
+  <div id="loading">
+    <div class="spinner"></div>
+    <div>Memuatkan e-Permit HSK…</div>
+  </div>
+  <iframe
+    src="https://script.google.com/macros/s/AKfycbxAe_iTPeLz4bV59HhngBCt4Nd7OUfbFDu3vL_ClxxRFBz8T6n-sRB--lzwlQvk3SPf/exec"
+    title="e-Permit Hutan Simpanan Kekal"
+    allow="clipboard-write; camera; geolocation"
+    onload="document.getElementById('loading').style.display='none'">
+  </iframe>
+</body>
+</html>
