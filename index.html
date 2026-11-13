@@ -631,7 +631,6 @@ form.onsubmit = async e => {
   if(form.hingga.value < form.dari.value){ form.hingga.classList.add('invalid'); form.hingga.focus(); return toast('Tarikh hingga mesti selepas tarikh sah dari'); }
   const mgpList = readRows('#tblMgp'), peserta = readRows('#tblPes');
   if(!mgpList.length) return toast('Sila masukkan sekurang-kurangnya seorang MGP');
-  if(!peserta.length) return toast('Sila masukkan sekurang-kurangnya seorang peserta');
   if(peserta.length > mgpList.length * NISBAH){ ratioAlert(); return toast(`Nisbah 1 MGP : ${NISBAH} peserta — ${peserta.length} peserta memerlukan sekurang-kurangnya ${Math.ceil(peserta.length/NISBAH)} MGP`); }
   if(!$('#perakuan').checked) return toast('Sila tandakan perakuan pemohon');
 
