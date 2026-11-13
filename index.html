@@ -275,6 +275,13 @@ footer.site{text-align:center;color:var(--muted);font-size:12.5px;padding:10px 2
 .pf .foot{border-top:1px solid #000;text-align:center;font-size:8.5pt;margin-top:22px;padding-top:4px}
 .pf .watermark{position:absolute;top:38%;left:0;right:0;text-align:center;font-size:72pt;font-weight:800;color:rgba(179,38,30,.12);transform:rotate(-24deg);pointer-events:none}
 .pf .stamp{position:absolute;right:8mm;top:52mm;border:3px double #17693c;color:#17693c;padding:4px 12px;font-weight:800;transform:rotate(-8deg);font-size:13pt;letter-spacing:.08em;opacity:.85}
+.pf .sal{font-size:9.5pt}
+.pf .sal h5{font-size:10pt;margin:12px 0 5px;text-transform:uppercase}
+.pf .sal .sub{font-weight:700;margin:6px 0 3px}
+.pf .sal .sl{width:34%;background:#f3f3f3}
+.pf .sal td,.pf .sal th{padding:3px 6px;font-size:9pt}
+.pf .sal .lst th{background:#f3f3f3}
+.pf .sal tr{break-inside:avoid}
 .pf .lamp{font-size:9pt}
 .pf .lamp h4{text-align:center;margin:6px 0;font-size:10pt}
 .pf .lamp th{background:#fff;font-size:9pt;padding:5px 6px}
@@ -688,7 +695,7 @@ form.onsubmit = async e => {
 };
 $('#newApp').onclick = ()=>{ form.reset(); form.style.display=''; $('#successCard').style.display='none'; };
 let lastApp = null;
-$('#dlSalinan').onclick = ()=>{ if(lastApp) printPermit(lastApp, false, true); };
+$('#dlSalinan').onclick = ()=>{ if(lastApp) printSalinan(lastApp); };
 $('#goSemak').onclick =()=>{ $('#qRef').value=$('#refOut').textContent; show('semak'); doSemak(); };
 if (ONLINE){
   $('#footMode').textContent = 'Hak cipta Unit Ekopark dan Hutan Taman Negeri.';
@@ -714,7 +721,7 @@ async function doSemak(){
   if(!res.length){ out.innerHTML = `<div class="empty">Tiada permohonan ditemui. Semak No. Rujukan anda.</div>`; return; }
   out.innerHTML = res.map(statusCard).join('');
   $$('[data-print]',out).forEach(b=>b.onclick=()=>printPermit(cache.get(b.dataset.print)));
-  $$('[data-salinan]',out).forEach(b=>b.onclick=()=>printPermit(cache.get(b.dataset.salinan), false, true));
+  $$('[data-salinan]',out).forEach(b=>b.onclick=()=>printSalinan(cache.get(b.dataset.salinan)));
   $$('form[data-pay]',out).forEach(f=>f.onsubmit=submitPay);
   $$('[data-copy]',out).forEach(b=>b.onclick=async()=>{
     try{ await navigator.clipboard.writeText(b.dataset.copy); toast('No. rujukan pra pembayaran disalin'); }
@@ -818,6 +825,42 @@ const dl = (obj, name) => { const a=document.createElement('a'); a.href=URL.crea
 const pack = list => ({app:'ePermitHSK', versi:1, dieksport:new Date().toISOString(), permohonan:list});
 /* ---------- PRINT: BORANG 6 + LAMPIRAN A ---------- */
 const TITLE0 = document.title;
+/* Salinan borang permohonan (bukan permit) — maklumat seperti yang diisi pemohon */
+function printSalinan(a){
+  const v = x => x ? esc(x) : '—';
+  const row = (l, x) => `<tr><td class="sl">${l}</td><td>${v(x)}</td></tr>`;
+  const hantar = a.created ? new Date(a.created).toLocaleString('ms-MY',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+  const st = (ST[normSt(a.status)] || {l:a.status}).l;
+  $('#printArea').innerHTML = `
+  <section class="page p1 sal">
+    <div class="watermark">SALINAN</div>
+    <div class="t1" style="font-size:12pt">JABATAN PERHUTANAN NEGERI KELANTAN</div>
+    <div class="t2">Unit Ekopark dan Hutan Taman Negeri</div>
+    <div class="t1" style="margin-top:10px">SALINAN BORANG PERMOHONAN PERMIT MEMASUKI HUTAN SIMPANAN KEKAL</div>
+    <div class="t2">(Borang 6 · Akta Perhutanan Negara 1984 [Seksyen 47(3)])</div>
+    <table class="box" style="margin-top:10px"><tr><td class="sl">No. Rujukan Permohonan</td><td class="val">${esc(a.ref)}</td></tr>
+      <tr><td class="sl">Tarikh dihantar</td><td>${hantar}</td></tr><tr><td class="sl">Status semasa</td><td>${esc(st)}</td></tr></table>
+    <h5>1. Maklumat Pemohon</h5>
+    <table class="box">${row('Nama Pemohon / Syarikat',a.nama)}${row('No. K.P.P.N (MyKad)',a.kppn)}${row('No. MGP',a.mgp)}${row('Persatuan / Kelab / Syarikat',a.persatuan)}
+      ${row('No. Telefon',a.telefon)}${row('Alamat',a.alamat)}${row('Emel',a.emel)}</table>
+    <h5>2. Maklumat Aktiviti</h5>
+    <table class="box">${row('Jenis Aktiviti',a.aktiviti)}${row('Kategori Aktiviti',a.kategori)}${row('Hutan Simpanan Kekal',a.hsk)}${row('Lokasi / Destinasi',a.lokasi)}
+      <tr><td class="sl">Tarikh</td><td>${fmtD(a.dari)} hingga ${fmtD(a.hingga)}</td></tr>${row('Laluan Masuk Pendakian',a.laluanMasuk)}${row('Laluan Keluar Pendakian',a.laluanKeluar)}</table>
+    <h5>3. Lampiran A — Senarai MGP &amp; Peserta (${a.mgpList.length} MGP + ${a.peserta.length} peserta = ${total(a)} orang)</h5>
+    <div class="sub">A. Malim Gunung Perhutanan (MGP)</div>
+    <table class="box lst"><thead><tr><th style="width:7%">Bil.</th><th>Nama</th><th style="width:22%">No. MyKad</th><th style="width:18%">No. Telefon</th><th style="width:18%">No. MGP</th></tr></thead>
+      <tbody>${a.mgpList.map((m,i)=>`<tr><td class="center">${i+1}.</td><td>${v(m.nama)}</td><td>${v(m.ic)}</td><td>${v(m.tel)}</td><td>${v(m.mgp)}</td></tr>`).join('')}</tbody></table>
+    <div class="sub">B. Peserta</div>
+    ${a.peserta.length ? `<table class="box lst"><thead><tr><th style="width:6%">Bil.</th><th>Nama</th><th style="width:15%">MyKad / Passport</th><th>Alamat</th><th style="width:12%">No. Telefon</th><th style="width:12%">Tel. Waris</th><th style="width:8%">Jantina</th><th style="width:11%">Warganegara</th></tr></thead>
+      <tbody>${a.peserta.map((m,i)=>`<tr><td class="center">${i+1}.</td><td>${v(m.nama)}</td><td>${v(m.ic)}</td><td>${v(m.alamat)}</td><td>${v(m.tel)}</td><td>${v(m.waris)}</td><td>${v(m.jantina)}</td><td>${v(m.wn)}</td></tr>`).join('')}</tbody></table>`
+      : '<p style="margin:4px 0">Tiada peserta (MGP sahaja).</p>'}
+    <h5>4. Perakuan Pemohon</h5>
+    <p style="margin:4px 0">☑ Saya mengesahkan bahawa semua maklumat dan dokumen yang dikemukakan dalam permohonan ini adalah benar. Jika saya didapati memalsukan maklumat, dokumen, atau pernyataan palsu, saya boleh didakwa di bawah Kanun Keseksaan yang memperuntukkan hukuman penjara sehingga 6 bulan atau denda sehingga RM2,000.00 atau kedua-duanya.</p>
+    <div class="foot">Salinan ini dijana oleh sistem e-Permit dan bukan permit yang sah. Permit hanya sah selepas dikeluarkan oleh Pegawai Hutan Berkuasa.</div>
+  </section>`;
+  document.title = 'Salinan-Permohonan-' + a.ref;   // nama fail PDF
+  setTimeout(()=>{ window.print(); setTimeout(()=>document.title=TITLE0, 1000); }, 60);
+}
 function printPermit(a, isAdmin, salinan){
   const o = a.office || {};
   const approved = normSt(a.status)==='Dikeluarkan';                       // permit sah hanya selepas bayaran disahkan
